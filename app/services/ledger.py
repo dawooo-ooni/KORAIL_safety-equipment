@@ -2,7 +2,7 @@
 from datetime import date
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from ..extensions import db
 from ..models import Equipment, EquipmentType, Inspection, Office
@@ -51,7 +51,9 @@ class Row:
 
 def all_rows(ref=None, query=None):
     q = query if query is not None else Equipment.query
-    q = q.options(joinedload(Equipment.office), joinedload(Equipment.etype), joinedload(Equipment.manager_user))
+    # 목록 화면에서 장비마다 따로 질의하지 않도록(N+1) 관계를 한 번에 불러온다
+    q = q.options(joinedload(Equipment.office), joinedload(Equipment.etype), joinedload(Equipment.manager_user),
+                  selectinload(Equipment.photos))
     ref = ref or date.today()
     u, w = cfg.thresholds()
     return [Row(eq, evaluate(eq, eq.etype, ref, u, w)) for eq in q.all()]

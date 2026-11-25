@@ -82,6 +82,9 @@ def _register_template_helpers(app):
     from .services.calc import GRADES, dd_text
     from .services.ledger import icon_for
 
+    import time
+    static_v = app.config.get("STATIC_VERSION") or str(int(time.time()))
+
     @app.template_filter("d")
     def fmt_date(v):
         if not v:
@@ -98,7 +101,7 @@ def _register_template_helpers(app):
 
     @app.context_processor
     def inject():
-        ctx = {"GRADES": GRADES, "today": date.today(), "icon_for": icon_for}
+        ctx = {"GRADES": GRADES, "today": date.today(), "icon_for": icon_for, "static_v": static_v}
         try:
             ctx["urgent_days"], ctx["warn_days"] = cfg.thresholds()
             ctx["logo_on"] = bool(cfg.get("logo_path"))

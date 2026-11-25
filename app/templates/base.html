@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}안전장비/보호구 자동 관리 대장</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v=static_v) }}">
 <link rel="icon" href="{{ url_for('static', filename='img/types/default.svg') }}">
 {% block head %}{% endblock %}
 </head>
@@ -51,7 +51,7 @@
 {% with msgs = get_flashed_messages(with_categories=true) %}
 {% if msgs %}<div class="flashes">{% for cat, m in msgs %}<div class="flash {{ cat }}" role="status">{{ m }}<button type="button" aria-label="닫기">×</button></div>{% endfor %}</div>{% endif %}
 {% endwith %}
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js', v=static_v) }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

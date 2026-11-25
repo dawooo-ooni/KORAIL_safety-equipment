@@ -75,6 +75,10 @@ class Config:
     UPLOAD_MAX_MB = _int("UPLOAD_MAX_MB", 10)
     MAX_CONTENT_LENGTH = UPLOAD_MAX_MB * 1024 * 1024
 
+    # CSS·JS·그림을 브라우저가 하루 동안 캐시 (CSS·JS 링크에는 배포 버전 ?v= 를 붙여 배포 즉시 갱신)
+    SEND_FILE_MAX_AGE_DEFAULT = 86400
+    STATIC_VERSION = (os.environ.get("VERCEL_GIT_COMMIT_SHA") or os.environ.get("VERCEL_DEPLOYMENT_ID") or "")[:12]
+
     PER_PAGE = 50
     BACKUP_KEEP_DAYS = 30
     TESTING = False
@@ -83,6 +87,7 @@ class Config:
 
 class DevConfig(Config):
     DEBUG = True
+    SEND_FILE_MAX_AGE_DEFAULT = None  # 개발 중에는 캐시하지 않음
 
 
 class TestConfig(Config):

@@ -25,6 +25,6 @@ thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
   <span style="color:#555">{% block hint %}브라우저 인쇄 창에서 용지 A4를 선택하세요.{% endblock %}</span>
 </div>
 {% block body %}{% endblock %}
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js', v=static_v) }}"></script>
 </body>
 </html>
