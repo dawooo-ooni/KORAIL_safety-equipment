@@ -38,6 +38,30 @@ waitress-serve --host 0.0.0.0 --port 5000 --call app:create_app
 > 이 PC에서는 5000번 포트를 다른 앱이 쓰고 있어 `.env` 에 `PORT=5050`, `APP_BASE_URL=http://127.0.0.1:5050` 으로 설정해 두었습니다.
 > `flask run` 을 쓸 때는 `flask run --port 5050` 으로 실행하세요.
 
+## 배포 (GitHub · Vercel · Supabase)
+
+| 구성 | 이름 / 주소 |
+|---|---|
+| 서비스 주소 | https://korail-safety-equipment.vercel.app |
+| GitHub | https://github.com/dawooo-ooni/KORAIL_safety-equipment (main 에 push 하면 Vercel 자동 배포) |
+| Vercel 프로젝트 | `korail-safety-equipment` (Flask 프리셋, `vercel.json` 에 Cron 만 설정) |
+| Supabase 프로젝트 | `KORAIL_안전장비관리` (서울 리전) — PostgreSQL + Storage 비공개 버킷 `uploads` |
+
+- DB: Vercel 은 연결 풀러(트랜잭션 모드, 6543)로 접속합니다. 모든 테이블에 RLS 를 켜 두어 Supabase 공개 REST API 로는 읽거나 쓸 수 없습니다.
+- 사진·로고: `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` 가 있으면 Supabase Storage 에 저장하고, 앱이 로그인 확인 후 전달합니다.
+- 자동 알림: Vercel Cron 이 매일 23:00 UTC(= 08:00 KST)에 `/cron/daily` 를 호출합니다 (`CRON_SECRET` 필요). 관리 → 설정의 [매일 자동 알림 발송]을 켜야 보냅니다.
+- 메일: 현재 `MAIL_BACKEND=console` (Vercel 로그에만 출력). 실제 발송은 Vercel 환경변수에 `MAIL_BACKEND=smtp`, `SMTP_*` 를 추가하세요.
+- Vercel 환경변수: `DATABASE_URL`, `SECRET_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `CRON_SECRET`, `APP_TZ=Asia/Seoul`, `SESSION_COOKIE_SECURE=1`, `MAIL_BACKEND`, `APP_BASE_URL`
+- 비밀값 원본은 이 폴더의 `DEPLOY_SECRETS.local.txt` (git 제외)에만 있습니다.
+
+Supabase DB 에 직접 명령을 실행할 때 (스키마 생성·시드):
+
+```powershell
+$env:DATABASE_URL = "<DEPLOY_SECRETS.local.txt 의 DATABASE_URL_SESSION>"
+flask init-db
+flask seed --sample --no-sample-users
+```
+
 ## 계정
 
 | 계정 | 비밀번호 | 비고 |
