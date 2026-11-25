@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}회원가입 신청{% endblock %}
+{% block content %}
+{% from "_macros.html" import csrf with context %}
+<div class="login-wrap"><div class="login">
+  <h2>📝 회원가입 신청</h2><div class="sub">관리자가 승인하면 로그인할 수 있습니다</div>
+  {% if closed %}
+    <div class="note">현재 회원가입 신청을 받지 않습니다. 관리자에게 문의하세요.</div>
+  {% else %}
+  <form method="post">
+    {{ csrf() }}
+    <label>아이디<span class="req">*</span><input type="text" name="login_id" value="{{ f.get('login_id','') }}" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="영문·숫자 3~20자 (사번 권장)" required maxlength="20"></label>
+    <label>이름<span class="req">*</span><input type="text" name="name" value="{{ f.get('name','') }}" autocomplete="name" required maxlength="50"></label>
+    <label>소속 사업소<span class="req">*</span><select name="office_id" required><option value="">선택하세요</option>
+      {% for o in offices %}<option value="{{ o.id }}" {{ 'selected' if f.get('office_id')|string == o.id|string }}>{{ o.name }}</option>{% endfor %}</select></label>
+    <label>이메일 <span class="muted small" style="font-weight:400">(승인 결과 안내·알림 수신용, 선택)</span><input type="email" name="email" value="{{ f.get('email','') }}" maxlength="120"></label>
+    <label>비밀번호<span class="req">*</span> <span class="muted small" style="font-weight:400">(6자 이상, 영문+숫자 8자 이상 권장)</span><input type="password" name="password" autocomplete="new-password" required></label>
+    <label>비밀번호 확인<span class="req">*</span><input type="password" name="password2" autocomplete="new-password" required></label>
+    <label>연락처·신청 메모 <span class="muted small" style="font-weight:400">(선택)</span><input type="text" name="memo" value="{{ f.get('memo','') }}" placeholder="예: 내선 1234, 전기설비팀" maxlength="200"></label>
+    <div class="err">{{ error or "" }}</div>
+    <button class="btn pri" type="submit">가입 신청</button>
+  </form>
+  {% endif %}
+  <p style="text-align:center;margin:14px 0 0"><a href="{{ url_for('auth.login') }}">← 로그인 화면으로</a></p>
+</div></div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}사용자 관리{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="card" style="border:2px solid {{ 'var(--urg)' if pending else 'var(--line)' }}">
+  <div class="toolbar" style="margin-bottom:8px"><h2 style="margin:0">회원가입 승인 대기 <span class="muted small">({{ pending|length }}건)</span></h2><div class="grow"></div>
+    <a class="small" href="{{ url_for('admin.settings') }}">회원가입 신청 받기: <b>{{ '켜짐' if allow_signup else '꺼짐' }}</b></a></div>
+  {% if pending %}
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>신청일시</th><th>아이디</th><th>이름</th><th>소속 사업소</th><th>이메일</th><th>연락처·메모</th><th>승인</th><th>반려</th></tr></thead><tbody>
+  {% for u in pending %}
+  <tr><td class="small">{{ u.created_at|d }}</td><td><b>{{ u.login_id }}</b></td><td>{{ u.name }}</td><td>{{ u.office.name if u.office else '-' }}</td><td class="small">{{ u.email or '-' }}</td><td class="small">{{ u.signup_memo or '-' }}</td>
+    <td><form method="post" action="{{ url_for('admin.approve', uid=u.id) }}" class="inline" style="white-space:nowrap">{{ csrf() }}
+      <select name="role"><option value="user">사용자</option><option value="admin">관리자</option></select> <button class="btn sm pri" data-confirm="{{ u.name }}({{ u.login_id }})님의 가입을 승인할까요? 관리자로 승인하면 모든 데이터와 계정을 바꿀 수 있습니다.">승인</button></form></td>
+    <td><form method="post" action="{{ url_for('admin.reject', uid=u.id) }}" class="inline" style="white-space:nowrap" data-confirm="가입 신청을 반려할까요?">{{ csrf() }}
+      <input type="text" name="reason" placeholder="반려 사유 (신청자에게 표시)" maxlength="200" style="width:180px"> <button class="btn sm danger">반려</button></form></td></tr>
+  {% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="muted" style="margin:0">승인을 기다리는 신청이 없습니다.</p>{% endif %}
+</div>
+
+<div class="card"><h2>사용자 계정 관리</h2>
+  <div class="info">관리자는 장비 등록·수정·검사 등록·알림·QR 라벨·관리 기능을 모두 쓸 수 있고, 사용자는 대시보드·대장 조회·작업 전 점검만 쓸 수 있습니다. 마지막 관리자는 강등·중지·삭제할 수 없습니다.</div>
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>아이디</th><th>이름 · 이메일 · 사업소</th><th>권한</th><th>상태</th><th>최근 로그인</th><th>관리</th></tr></thead><tbody>
+  {% for u in users %}
+  <tr>
+    <td><b>{{ u.login_id }}</b>{% if u.id == current_user.id %} <span class="small muted">(나)</span>{% endif %}{% if u.login_id in sample_logins %} <span class="badge g-light">예시</span>{% endif %}</td>
+    <td>
+      <form method="post" action="{{ url_for('admin.user_edit', uid=u.id) }}" class="inline" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">{{ csrf() }}
+        <input type="text" name="name" value="{{ u.name }}" style="width:90px" maxlength="50" required>
+        <input type="email" name="email" value="{{ u.email or '' }}" placeholder="이메일" style="width:180px" maxlength="120">
+        <select name="office_id"><option value="">사업소 없음</option>{% for o in offices %}<option value="{{ o.id }}" {{ 'selected' if u.office_id == o.id }}>{{ o.name }}</option>{% endfor %}</select>
+        <button class="btn sm">저장</button>
+      </form>
+    </td>
+    <td><form method="post" action="{{ url_for('admin.role', uid=u.id) }}" class="inline">{{ csrf() }}
+      <select name="role" data-autosubmit {{ 'disabled' if u.status != 'active' }}><option value="user" {{ 'selected' if u.role == 'user' }}>사용자</option><option value="admin" {{ 'selected' if u.role == 'admin' }}>관리자</option></select></form></td>
+    <td class="small">
+      {% if u.status == 'rejected' %}<span style="color:var(--over)">가입 반려</span>{% if u.reject_reason %}<br><span class="muted">{{ u.reject_reason }}</span>{% endif %}
+      {% elif u.status == 'suspended' %}<span style="color:var(--over)">사용 중지</span>
+      {% elif u.locked_until and u.locked_until > now %}<span style="color:var(--urg)">로그인 잠김</span>
+      {% elif u.must_change_pw %}<span style="color:var(--urg)">비밀번호 변경 대기</span>
+      {% else %}정상{% endif %}
+      {% if u.approver %}<br><span class="muted">승인 {{ u.approver.name }}</span>{% endif %}
+    </td>
+    <td class="small">{{ u.last_login_at|d or '없음' }}</td>
+    <td style="white-space:nowrap">
+      <form method="post" action="{{ url_for('admin.reset_password', uid=u.id) }}" class="inline" data-confirm="{{ u.name }}님의 비밀번호를 임시 비밀번호로 초기화할까요?">{{ csrf() }}<button class="btn sm">비밀번호 초기화</button></form>
+      {% if u.status == 'active' %}<form method="post" action="{{ url_for('admin.suspend', uid=u.id) }}" class="inline" data-confirm="{{ u.name }}님의 계정 사용을 중지할까요?">{{ csrf() }}<button class="btn sm">중지</button></form>
+      {% else %}<form method="post" action="{{ url_for('admin.activate', uid=u.id) }}" class="inline">{{ csrf() }}<button class="btn sm">{{ '승인(활성화)' if u.status == 'rejected' else '사용 재개' }}</button></form>{% endif %}
+      <form method="post" action="{{ url_for('admin.user_delete', uid=u.id) }}" class="inline" data-confirm="{{ u.name }}({{ u.login_id }}) 계정을 삭제할까요? 되돌릴 수 없습니다.">{{ csrf() }}<button class="btn sm danger">삭제</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="card"><h3>＋ 사용자 직접 추가</h3>
+  <form method="post" action="{{ url_for('admin.user_new') }}">{{ csrf() }}
+    <div class="form" style="grid-template-columns:repeat(3,1fr)">
+      <label>아이디<span class="req">*</span><input type="text" name="login_id" required maxlength="20" placeholder="영문·숫자 3~20자" autocapitalize="off"></label>
+      <label>이름<span class="req">*</span><input type="text" name="name" required maxlength="50"></label>
+      <label>이메일<input type="email" name="email" maxlength="120"></label>
+      <label>권한<select name="role"><option value="user">사용자 (조회·작업 전 점검)</option><option value="admin">관리자 (모든 기능)</option></select></label>
+      <label>소속 사업소<select name="office_id"><option value="">선택 안 함</option>{% for o in offices %}<option value="{{ o.id }}">{{ o.name }}</option>{% endfor %}</select></label>
+      <label>초기 비밀번호<span class="req">*</span><input type="password" name="password" required autocomplete="new-password" placeholder="6자 이상, 첫 로그인 때 변경"></label>
+    </div>
+    <div class="foot"><button class="btn pri">사용자 추가</button></div>
+  </form>
+</div>
+{% endblock %}

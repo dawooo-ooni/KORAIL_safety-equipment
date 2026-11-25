@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}백업·복원{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="grid2 even">
+  <div class="card"><h2>백업 받기</h2>
+    <p class="small muted" style="margin-top:-4px">사업소·기준표·장비·검사 이력·설정을 파일로 받습니다. (계정·사진 파일은 제외)</p>
+    <div class="toolbar"><a class="btn pri" href="{{ url_for('admin.backup_json') }}">⬇ JSON 백업</a><a class="btn" href="{{ url_for('admin.backup_xlsx') }}">⬇ XLSX 백업 (대장 전체)</a></div>
+  </div>
+  <div class="card"><h2>JSON 복원</h2>
+    <div class="note">이 앱의 JSON 백업으로 복원하면 <b>백업에 없는 장비는 삭제</b>되고 나머지는 백업 내용으로 바뀝니다(계정은 그대로). 시제품(HTML)의 JSON 백업을 올리면 장비를 추가·갱신만 합니다. 복원 직전에 DB 파일 백업이 자동으로 만들어집니다.</div>
+    <form method="post" enctype="multipart/form-data" data-confirm="정말 복원할까요?">{{ csrf() }}<input type="hidden" name="action" value="restore">
+      <div class="toolbar"><input type="file" name="file" accept=".json,application/json" required></div>
+      <div class="toolbar"><input type="text" name="confirm" placeholder="'복원' 입력" style="width:120px" autocomplete="off"><button class="btn danger">복원</button></div>
+    </form>
+  </div>
+</div>
+{% if not is_sqlite %}
+<div class="card"><h2>DB 백업</h2><p class="small muted">이 서버는 Supabase(PostgreSQL) DB를 사용합니다. DB 전체 백업은 Supabase가 매일 자동으로 보관합니다(Supabase 대시보드 → Database → Backups). 위의 JSON·XLSX 백업도 정기적으로 받아 두세요.</p></div>
+{% else %}
+<div class="card"><div class="toolbar"><h2 style="margin:0">DB 파일 백업 (SQLite)</h2><div class="grow"></div>
+  <form method="post" class="inline">{{ csrf() }}<input type="hidden" name="action" value="db"><button class="btn pri">지금 DB 백업</button></form></div>
+  <p class="small muted">서버의 <code>instance/backups/</code>에 하루 1개(<code>ledger_YYYYMMDD.db</code>)씩 저장되며 30일이 지난 파일은 자동 삭제됩니다. 스케줄러가 켜져 있으면 매일 02:30에 자동 백업됩니다. CLI: <code>flask backup-db</code></p>
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>파일</th><th>크기</th><th>만든 시각</th><th></th></tr></thead><tbody>
+  {% for b in backups %}<tr><td>{{ b.name }}</td><td>{{ '%.1f'|format(b.size / 1024) }} KB</td><td>{{ b.mtime|d }}</td><td><a class="btn sm" href="{{ url_for('admin.backup_db_file', name=b.name) }}">받기</a></td></tr>
+  {% else %}<tr><td colspan="4" class="muted">DB 백업 파일이 없습니다.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}

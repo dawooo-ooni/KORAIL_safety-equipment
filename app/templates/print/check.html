@@ -1,0 +1,17 @@
+{% extends "print/base.html" %}
+{% block title %}작업 전 장비 점검 결과 {{ wc.work_date|d }}{% endblock %}
+{% block style %}@page{size:A4 portrait;margin:12mm}.sign{margin-top:24px;display:flex;gap:40px;font-size:11pt}.sign div{flex:1;border-bottom:1px solid #333;padding-bottom:22px}{% endblock %}
+{% block body %}
+{% set bad = wc.items|rejectattr('verdict', 'equalto', '적합')|list %}
+<div class="wrap">
+<h1>작업 전 투입 장비 점검 결과</h1>
+<div class="sub">기록 #{{ wc.id }} · 작업일 {{ wc.work_date|d }}{% if wc.work_title %} · 작업명 {{ wc.work_title }}{% endif %} · 점검자 {{ wc.checker.name }} ({{ wc.checker.login_id }}) · 점검일시 {{ wc.created_at|d }}</div>
+<div class="banner {{ 'over' if bad else 'ok' }}">{% if bad %}⚠ 투입 불가 장비 있음 ({{ bad|length }}건 / 전체 {{ wc.items|length }}건) — 해당 장비는 작업에 투입하지 마세요.{% else %}✅ 전체 {{ wc.items|length }}건 작업일 기준 투입 가능{% endif %}</div>
+<table><thead><tr><th>판정</th><th>관리번호</th><th>장비구분</th><th>사업소</th><th>차기검사일</th><th>사유</th><th style="width:60px">확인</th></tr></thead><tbody>
+{% for it in wc.items %}
+<tr><td class="b {{ css[it.verdict] }}">{{ label[it.verdict] }}</td><td>{{ it.mgmt_no }}</td><td>{{ it.equipment.etype.name if it.equipment else '-' }}</td><td>{{ it.equipment.office.name if it.equipment else '-' }}</td><td>{{ it.next_inspect_date|d or '-' }}</td><td>{{ it.reason or '' }}</td><td></td></tr>
+{% endfor %}
+</tbody></table>
+<div class="sign"><div>점검자: {{ wc.checker.name }} (서명)</div><div>확인자: (서명)</div></div>
+</div>
+{% endblock %}

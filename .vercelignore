@@ -1,0 +1,11 @@
+.venv
+.env
+instance
+tests
+migrations
+.pytest_cache
+__pycache__
+*.pyc
+*.db
+DEPLOY_SECRETS*
+supabase/.temp

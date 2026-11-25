@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, pager with context %}
+{% block title %}발송 이력{% endblock %}
+{% block content %}
+<nav class="sub"><a href="{{ url_for('notify.index') }}">알림 미리보기·발송</a><a class="on" href="{{ url_for('notify.logs') }}">발송 이력</a></nav>
+<div class="card"><div class="toolbar"><h2 style="margin:0">알림 발송 이력</h2><div class="grow"></div>
+  <form method="get"><select name="status" data-autosubmit><option value="">전체 상태</option>
+    {% for k, l in [('sent','발송'),('failed','실패'),('skipped','건너뜀')] %}<option value="{{ k }}" {{ 'selected' if status == k }}>{{ l }}</option>{% endfor %}</select></form></div>
+<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>구분</th><th>수신자</th><th>제목</th><th>건수</th><th>상태</th><th>비고</th><th>발송자</th><th></th></tr></thead><tbody>
+{% for l in pg.items %}
+<tr><td class="small" style="white-space:nowrap">{{ l.sent_at|d }}</td><td>{{ '자동' if l.trigger == 'auto' else '수동' }}</td><td>{{ l.recipient }}</td><td class="small">{{ l.subject }}</td><td>{{ l.item_count }}</td>
+<td>{% if l.status == 'sent' %}<span class="badge g-ok">발송</span>{% elif l.status == 'failed' %}<span class="badge g-over">실패</span>{% else %}<span class="badge g-dead">건너뜀</span>{% endif %}</td>
+<td class="small muted">{{ l.error or '' }}</td><td class="small">{{ l.sender.name if l.sender else ('스케줄러' if l.trigger == 'auto' else '-') }}</td>
+<td>{% if l.status in ('failed', 'skipped') and '@' in l.recipient %}<form method="post" action="{{ url_for('notify.resend', lid=l.id) }}" class="inline" data-confirm="{{ l.recipient }}에게 현재 기준으로 다시 보낼까요?">{{ csrf() }}<button class="btn sm">재발송</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="9" class="muted" style="text-align:center;padding:24px">발송 이력이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div>
+{{ pager(pg.page, pg.pages, 'notify.logs', ({'status': status} if status else {})) }}
+</div>
+{% endblock %}

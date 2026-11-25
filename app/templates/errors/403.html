@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block title %}권한 없음{% endblock %}
+{% block content %}<div class="errpage card"><div class="code">403</div><h2>이 화면을 볼 권한이 없습니다</h2><p class="muted">관리자 전용 기능입니다. 필요하면 관리자에게 권한을 요청하세요.</p><a class="btn pri" href="{{ url_for('main.dashboard') }}">대시보드로</a></div>{% endblock %}

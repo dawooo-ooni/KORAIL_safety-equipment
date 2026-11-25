@@ -1,0 +1,10 @@
+{% set ep = request.endpoint or '' %}
+<nav class="sub">
+  <a href="{{ url_for('admin.users') }}" class="{{ 'on' if ep == 'admin.users' }}">사용자{% if pending_count %} ({{ pending_count }}){% endif %}</a>
+  <a href="{{ url_for('admin.types') }}" class="{{ 'on' if ep == 'admin.types' }}">장비구분 기준표</a>
+  <a href="{{ url_for('admin.offices') }}" class="{{ 'on' if ep == 'admin.offices' }}">사업소</a>
+  <a href="{{ url_for('admin.settings') }}" class="{{ 'on' if ep == 'admin.settings' }}">설정</a>
+  <a href="{{ url_for('admin.import_') }}" class="{{ 'on' if ep == 'admin.import_' }}">일괄 등록</a>
+  <a href="{{ url_for('admin.backup') }}" class="{{ 'on' if ep == 'admin.backup' }}">백업·복원</a>
+  <a href="{{ url_for('admin.audit_logs') }}" class="{{ 'on' if ep == 'admin.audit_logs' }}">감사 로그</a>
+</nav>

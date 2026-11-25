@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}신청 상태 조회{% endblock %}
+{% block content %}
+<div class="login-wrap"><div class="login">
+  <h2>🔎 가입 신청 상태 조회</h2><div class="sub">신청한 아이디를 입력하세요</div>
+  <form method="get">
+    <label>아이디<input type="text" name="login_id" value="{{ login_id }}" autocapitalize="off" required></label>
+    <button class="btn pri" type="submit">조회</button>
+  </form>
+  {% if searched %}
+    <div style="margin-top:16px">
+    {% if not u %}<div class="note">해당 아이디로 신청한 내역이 없습니다.</div>
+    {% elif u.status == 'pending' %}<div class="info">⏳ <b>승인 대기 중</b>입니다. 신청일 {{ u.created_at|d }}</div>
+    {% elif u.status == 'rejected' %}<div class="errbox">❌ <b>반려</b>되었습니다.{% if u.reject_reason %}<br>사유: {{ u.reject_reason }}{% endif %}<br><a href="{{ url_for('auth.signup') }}">내용을 고쳐 다시 신청하기</a></div>
+    {% elif u.status == 'active' %}<div class="info">✅ <b>승인 완료</b> — 로그인할 수 있습니다.</div>
+    {% else %}<div class="note">사용이 중지된 계정입니다. 관리자에게 문의하세요.</div>{% endif %}
+    </div>
+  {% endif %}
+  <p style="text-align:center;margin:14px 0 0"><a href="{{ url_for('auth.login') }}">← 로그인 화면으로</a></p>
+</div></div>
+{% endblock %}

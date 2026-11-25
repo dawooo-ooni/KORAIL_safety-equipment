@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge with context %}
+{% block title %}담당자 알림{% endblock %}
+{% block content %}
+<nav class="sub"><a class="on" href="{{ url_for('notify.index') }}">알림 미리보기·발송</a><a href="{{ url_for('notify.logs') }}">발송 이력</a></nav>
+<div class="card"><h2>담당자 알림</h2>
+  {% if state == 'unset' %}<div class="errbox">⚠ {{ state_msg }}</div>{% elif state == 'console' %}<div class="note">ℹ {{ state_msg }}</div>{% else %}<div class="info">✉ {{ state_msg }}</div>{% endif %}
+  <div class="info">기한초과·긴급·주의({{ warn_days }}일 이내) 장비를 담당자 이메일별로 묶었습니다. 담당자 이메일이 없는 장비는 해당 사업소 관리자에게 보냅니다.
+    자동 발송: <b>{{ '켜짐' if alert_enabled else '꺼짐' }}</b> (매일 {{ alert_time }}){% if alert_cc %} · 참조: {{ alert_cc }}{% endif %} — <a href="{{ url_for('admin.settings') }}">설정 변경</a></div>
+  {% if previews %}
+  <form method="post" action="{{ url_for('notify.send') }}" data-confirm="선택한 담당자에게 지금 알림 메일을 보낼까요?">
+    {{ csrf() }}
+    <div class="toolbar">
+      <label class="small"><input type="checkbox" id="recAll" checked> 전체 선택</label>
+      <span class="muted small">수신자 {{ previews|length }}명 · 장비 {{ total_items }}건 (중복 포함)</span>
+      <div class="grow"></div>
+      <label class="small" title="오늘 이미 보낸 수신자에게도 다시 보냄"><input type="checkbox" name="force" value="1"> 오늘 보낸 수신자도 다시 보내기</label>
+      <button class="btn pri" type="submit" {{ 'disabled' if state == 'unset' }}>✉ 선택한 담당자에게 지금 발송</button>
+    </div>
+    {% for g, subject, body, sent in previews %}
+    <div class="alertgrp">
+      <div class="toolbar">
+        {% if g.recipient %}<input type="checkbox" name="recipient" value="{{ g.recipient }}" checked>{% endif %}
+        <b>{{ g.name }}</b><span class="muted small">{{ g.recipient or '이메일 없음 — 발송 불가 (담당자 또는 사업소 관리자 이메일을 등록하세요)' }}</span>
+        <span class="small">· {{ g.rows|length }}건 ({{ g.over_count }}건 초과)</span>
+        {% if g.via_office_admin %}<span class="badge g-light">사업소 관리자에게</span>{% endif %}
+        {% if sent %}<span class="badge g-ok">오늘 발송함</span>{% endif %}
+      </div>
+      <div class="small muted" style="margin-bottom:4px">제목: {{ subject }}</div>
+      <pre class="body">{{ body }}</pre>
+    </div>
+    {% endfor %}
+  </form>
+  {% else %}<p class="muted">알림 대상 장비가 없습니다. 👍</p>{% endif %}
+</div>
+{% endblock %}

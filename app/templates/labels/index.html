@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}QR 라벨{% endblock %}
+{% block content %}
+<div class="card"><h2>QR 코드 라벨</h2>
+  <div class="info">QR에는 <b>고정 주소</b> <code>{{ config.APP_BASE_URL }}/q/관리번호</code>만 들어 있습니다. 휴대폰 카메라로 스캔하면 <b>서버 DB의 최신 정보</b>(차기검사일·경보 등급)가 표시되므로, 검사를 새로 등록해도 라벨을 다시 붙일 필요가 없습니다.<br>
+  비로그인 상태로 스캔하면 요약 카드만 보이고(담당자 정보 숨김), 로그인하면 상세 화면으로 이동합니다.</div>
+  {% if '127.0.0.1' in config.APP_BASE_URL or 'localhost' in config.APP_BASE_URL %}
+  <div class="note">⚠ 현재 QR 주소가 <code>{{ config.APP_BASE_URL }}</code>입니다. 이 주소는 이 PC에서만 열립니다. 휴대폰으로 시험하려면 <code>.env</code>의 <code>APP_BASE_URL</code>을 PC의 사내 IP(예: <code>http://192.168.0.10:5000</code>)로 바꾸고 서버를 다시 시작하세요.</div>
+  {% endif %}
+  <div class="grid2" style="grid-template-columns:1fr 1.1fr">
+    <div>
+      <form method="get" class="toolbar">
+        <select name="office" data-autosubmit><option value="">전체 사업소</option>{% for o in offices %}<option value="{{ o.code }}" {{ 'selected' if office == o.code }}>{{ o.name }}</option>{% endfor %}</select>
+        <select name="grade" data-autosubmit><option value="">전체 등급</option>{% for k, g in GRADES.items() %}<option value="{{ k }}" {{ 'selected' if grade == k }}>{{ g.icon }} {{ g.label }}</option>{% endfor %}</select>
+      </form>
+      <form method="get" action="{{ url_for('labels.print_labels') }}" target="_blank" id="labelForm">
+        <div class="toolbar">
+          <input type="search" placeholder="관리번호·구분 검색" data-filter-list="labelList" style="flex:1">
+          <button type="button" class="btn sm" data-select="all">보이는 항목 전체 선택</button><button type="button" class="btn sm" data-select="none">선택 해제</button>
+        </div>
+        <div class="pick" id="labelList" style="max-height:520px">
+          {% for r in rows %}<label><input type="checkbox" name="ids" value="{{ r.eq.id }}"> <b>{{ r.eq.mgmt_no }}</b> <span class="muted">{{ r.eq.etype.name }}</span> {{ badge(r.st.grade) }}</label>
+          {% else %}<p class="muted" style="padding:10px">해당 장비가 없습니다.</p>{% endfor %}
+        </div>
+        <div class="toolbar" style="margin-top:10px">
+          <b><span id="labelCount">0</span>개 선택</b><span class="muted small">(A4 한 장에 24개 · 63×36mm)</span>
+          <label class="small">앞에서 <input type="number" name="skip" value="0" min="0" max="23" style="width:60px"> 칸 건너뛰기 <span class="muted">(쓰다 남은 라벨지)</span></label>
+          <div class="grow"></div>
+          <button class="btn pri" type="submit" id="labelPrint" disabled>🖨 라벨 인쇄 페이지 열기</button>
+        </div>
+      </form>
+    </div>
+    <div>
+      <h3>라벨 예시</h3>
+      {% if rows %}{% set r = rows[0] %}
+      <div class="labels"><div class="label"><img src="{{ url_for('labels.qr_image', mgmt_no=r.eq.mgmt_no) }}" alt="QR"><div class="t"><b>{{ r.eq.mgmt_no }}</b><br>{{ r.eq.etype.name }}<br>{{ r.eq.office.name }}<br>차기검사 <b>{{ r.st.next_inspect|d }}</b><br><span style="color:#777">발행 {{ today|d }}</span></div></div></div>
+      <p class="small muted">라벨에 적힌 차기검사일은 발행 시점 값입니다. QR을 스캔하면 항상 최신 값이 표시됩니다.</p>
+      {% endif %}
+      <p class="small muted">인쇄 페이지에서 브라우저 인쇄(Ctrl+P)로 출력하세요. 용지: A4, 여백: 기본값, 배율: 100%(실제 크기).</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

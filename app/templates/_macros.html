@@ -1,0 +1,62 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro badge(grade) -%}
+{%- set g = GRADES[grade] -%}
+<span class="badge g-{{ g.css }}">{{ g.icon }} {{ g.label }}</span>
+{%- endmacro %}
+
+{% macro dd(st) -%}
+<span class="dd {{ GRADES[st.grade].css }}">{{ st.days_left|dd }}</span>
+{%- endmacro %}
+
+{% macro ticon(etype, size=26) -%}
+<img class="ico" src="{{ url_for('static', filename='img/types/' ~ icon_for(etype)) }}" width="{{ size }}" height="{{ size }}" alt="{{ etype.name }} 예시 그림">
+{%- endmacro %}
+
+{% macro errors_box(errors) -%}
+{% if errors %}<div class="errbox"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+{%- endmacro %}
+
+{% macro pager(page, pages, endpoint, args) -%}
+{% if pages > 1 %}
+<div class="pager">
+  {% set lo = [1, page - 4]|max %}{% set hi = [pages, page + 4]|min %}
+  {% if page > 1 %}<a href="{{ url_for(endpoint, page=page-1, **args) }}">‹ 이전</a>{% endif %}
+  {% if lo > 1 %}<a href="{{ url_for(endpoint, page=1, **args) }}">1</a>{% if lo > 2 %}<span>…</span>{% endif %}{% endif %}
+  {% for p in range(lo, hi + 1) %}
+    {% if p == page %}<span class="on">{{ p }}</span>{% else %}<a href="{{ url_for(endpoint, page=p, **args) }}">{{ p }}</a>{% endif %}
+  {% endfor %}
+  {% if hi < pages %}{% if hi < pages - 1 %}<span>…</span>{% endif %}<a href="{{ url_for(endpoint, page=pages, **args) }}">{{ pages }}</a>{% endif %}
+  {% if page < pages %}<a href="{{ url_for(endpoint, page=page+1, **args) }}">다음 ›</a>{% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{# 장비 목록: 데스크톱 표 + 모바일 카드 #}
+{% macro action_table(rows, max_height=None) -%}
+<div class="tblwrap desk"{% if max_height %} style="max-height:{{ max_height }};overflow-y:auto"{% endif %}>
+<table class="tbl"><thead><tr><th>경보</th><th>관리번호</th><th>장비구분</th><th>사업소</th><th>차기검사일</th><th>남은 일수</th><th>사유</th><th>담당자</th>{% if current_user.is_admin %}<th></th>{% endif %}</tr></thead><tbody>
+{% for r in rows %}
+<tr class="r-{{ GRADES[r.st.grade].css }}" data-href="{{ url_for('equipment.detail', eid=r.eq.id) }}">
+  <td>{{ badge(r.st.grade) }}</td><td><a class="rowlink" href="{{ url_for('equipment.detail', eid=r.eq.id) }}"><b>{{ r.eq.mgmt_no }}</b></a></td>
+  <td><span class="tcell">{{ ticon(r.eq.etype, 24) }}{{ r.eq.etype.name }}</span></td><td>{{ r.eq.office.name }}</td>
+  <td>{{ r.st.next_inspect|d }}</td><td>{{ dd(r.st) }}</td><td class="small">{{ r.st.reason }}</td><td>{{ r.eq.manager_display }}</td>
+  {% if current_user.is_admin %}<td><a class="btn sm" href="{{ url_for('equipment.inspect', eid=r.eq.id) }}">검사 등록</a></td>{% endif %}
+</tr>
+{% endfor %}
+</tbody></table></div>
+{{ mcards(rows) }}
+{%- endmacro %}
+
+{% macro mcards(rows) -%}
+<div class="mcards">
+{% for r in rows %}
+<a class="mcard c-{{ GRADES[r.st.grade].css }}" href="{{ url_for('equipment.detail', eid=r.eq.id) }}">
+  <div class="row1"><span class="no">{{ r.eq.mgmt_no }}</span>{{ badge(r.st.grade) }}</div>
+  <div class="tcell">{{ ticon(r.eq.etype, 30) }}<span>{{ r.eq.etype.name }} · {{ r.eq.office.name }}{% if r.eq.photos %} 📷{% endif %}</span></div>
+  <div class="meta">차기검사 {{ r.st.next_inspect|d }} · {{ dd(r.st) }}{% if r.st.reason %} · {{ r.st.reason }}{% endif %}</div>
+  <div class="meta">담당 {{ r.eq.manager_display or '-' }} · {{ r.eq.status }}</div>
+</a>
+{% endfor %}
+</div>
+{%- endmacro %}

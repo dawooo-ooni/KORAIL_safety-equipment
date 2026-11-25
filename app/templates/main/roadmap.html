@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}개발 목표{% endblock %}
+{% block content %}
+<div class="card"><h2>이번 Flask 버전에서 구현된 항목</h2>
+  <p class="muted" style="margin-top:-6px">HTML 시제품의 한계를 해결해 실제로 동작하도록 만든 기능입니다.</p>
+  <ul style="columns:2;column-gap:30px;margin:0;padding-left:18px">{% for t in implemented %}<li>✅ {{ t }}</li>{% endfor %}</ul>
+</div>
+<div class="card"><h2>개발 목표</h2><p class="muted" style="margin-top:-6px">시제품에서 정한 개발 목표와 현재 진행 상태입니다.</p>
+<div class="road">
+{% for title, goal, st, now, need in items %}
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0">{{ loop.index }}. {{ title }}</h3>
+    <span class="st {{ st }}">{{ {'done': '구현 완료', 'partial': '일부 구현', 'plan': '계획'}[st] }}</span></div>
+  <dl><dt>🎯 목표</dt><dd>{{ goal }}</dd><dt>🔧 현재 상태</dt><dd>{{ now }}</dd><dt>📌 남은 과제</dt><dd>{{ need }}</dd></dl></div>
+{% endfor %}
+</div></div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import action_table with context %}
+{% block title %}대시보드{% endblock %}
+{% block subline %} · 등록 장비 {{ total }}건{% endblock %}
+{% block content %}
+{% if pending_count %}
+<div class="note" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">👤 회원가입 승인 대기 <b>{{ pending_count }}건</b>이 있습니다.<a class="btn sm pri" href="{{ url_for('admin.users') }}">승인 처리하기</a></div>
+{% endif %}
+<div class="kpis">
+  <a class="kpi" href="{{ url_for('equipment.index') }}"><div class="lb">📋 전체 장비</div><div class="v">{{ total }}<small>건</small></div><div class="small muted">전체 목록 보기</div></a>
+  <a class="kpi k-ok" href="{{ url_for('equipment.index', grade='ok') }}"><div class="lb">🟢 정상</div><div class="v">{{ cnt.ok }}<small>건</small></div><div class="small muted">{{ warn_days }}일 초과 남음</div></a>
+  <a class="kpi k-warn" href="{{ url_for('equipment.index', grade='warn') }}"><div class="lb">🟡 주의</div><div class="v">{{ cnt.warn }}<small>건</small></div><div class="small muted">{{ urgent_days + 1 }}~{{ warn_days }}일 이내</div></a>
+  <a class="kpi k-urg" href="{{ url_for('equipment.index', grade='urgent') }}"><div class="lb">🟠 긴급</div><div class="v">{{ cnt.urgent }}<small>건</small></div><div class="small muted">0~{{ urgent_days }}일 이내</div></a>
+  <a class="kpi k-over" href="{{ url_for('equipment.index', grade='over') }}"><div class="lb">🔴 기한초과</div><div class="v">{{ cnt.over }}<small>건</small></div><div class="small muted">검사·교체 기한 경과</div></a>
+  <a class="kpi k-dead" href="{{ url_for('equipment.index', grade='unusable') }}"><div class="lb">⚫ 사용불가</div><div class="v">{{ cnt.unusable }}<small>건</small></div><div class="small muted">불합격·폐기</div></a>
+</div>
+{% set order = ['over', 'urgent', 'warn', 'unusable', 'ok'] %}
+<div class="grid2">
+  <div class="card"><h3>사업소별 현황</h3>
+    <div class="legend">{% for k in order %}<span><i style="background:{{ GRADES[k].color }}"></i>{{ GRADES[k].label }}</span>{% endfor %}</div>
+    {% for o, c in per_office %}
+    <div class="officebar"><div class="nm" title="{{ o.name }}">{{ o.name }}</div>
+      <div class="stack" role="img" aria-label="{{ o.name }} {% for k in order %}{{ GRADES[k].label }} {{ c[k] }}건{{ ', ' if not loop.last }}{% endfor %}">
+      {% if c.t %}{% for k in order if c[k] %}<a class="s-{{ GRADES[k].css }}" style="flex:{{ c[k] }}" title="{{ GRADES[k].label }} {{ c[k] }}건" href="{{ url_for('equipment.index', office=o.code, grade=k) }}">{{ c[k] }}</a>{% endfor %}
+      {% else %}<span style="flex:1;color:var(--muted);font-weight:400">등록 장비 없음</span>{% endif %}
+      </div><div class="small muted" style="text-align:right">{{ c.t }}건</div></div>
+    {% else %}<p class="muted">등록된 사업소가 없습니다.</p>{% endfor %}
+  </div>
+  <div class="card">
+    <div class="toolbar" style="margin-bottom:8px"><h3 style="margin:0">⚠ 조치 필요 장비 <span class="muted small">({{ action|length }}건 · 남은 일수 적은 순)</span></h3><div class="grow"></div>
+    {% if current_user.is_admin %}<a class="btn sm" href="{{ url_for('notify.index') }}">담당자 알림</a>{% endif %}</div>
+    {% if action %}{{ action_table(action, '520px') }}{% else %}<p class="muted">조치가 필요한 장비가 없습니다. 👍</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+DEPLOY_SECRETS*
+.vercel
+supabase/.temp/
+instance/
+.pytest_cache/
+*.db
+*.db-wal
+*.db-shm

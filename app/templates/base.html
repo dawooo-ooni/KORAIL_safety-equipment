@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}안전장비/보호구 자동 관리 대장</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="icon" href="{{ url_for('static', filename='img/types/default.svg') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+{% from "_macros.html" import csrf with context %}
+<header class="top">
+  <a class="home" href="{{ url_for('main.dashboard') }}">
+    {% if logo_on %}<img class="logo" src="{{ url_for('main.logo') }}" alt="로고">{% endif %}
+    <div>
+      <h1>KORAIL 안전장비/보호구 자동 관리 대장</h1>
+      <div class="sub">기준일 {{ today|d }}{% block subline %}{% endblock %}</div>
+    </div>
+  </a>
+  <div class="grow"></div>
+  {% if current_user.is_authenticated %}
+  <div class="userbox">
+    <div class="who"><b>{{ current_user.name }}</b><small>{{ current_user.login_id }}{% if current_user.office %} · {{ current_user.office.name }}{% endif %}</small></div>
+    <span class="role {{ '' if current_user.is_admin else 'user' }}">{{ '관리자' if current_user.is_admin else '사용자' }}</span>
+    <a class="ub" href="{{ url_for('auth.change_password') }}">비밀번호 변경</a>
+    <form method="post" action="{{ url_for('auth.logout') }}">{{ csrf() }}<button type="submit">로그아웃</button></form>
+  </div>
+  {% endif %}
+</header>
+{% if current_user.is_authenticated and not current_user.must_change_pw %}
+{% set ep = request.endpoint or '' %}
+<nav class="tabs">
+  <a href="{{ url_for('main.dashboard') }}" class="{{ 'on' if ep == 'main.dashboard' }}">대시보드</a>
+  <a href="{{ url_for('equipment.index') }}" class="{{ 'on' if ep.startswith('equipment.') }}">장비 대장</a>
+  <a href="{{ url_for('check.index') }}" class="{{ 'on' if ep.startswith('check.') }}">작업 전 장비 점검</a>
+  {% if current_user.is_admin %}
+  <a href="{{ url_for('notify.index') }}" class="{{ 'on' if ep.startswith('notify.') }}">담당자 알림</a>
+  <a href="{{ url_for('labels.index') }}" class="{{ 'on' if ep.startswith('labels.') }}">QR 라벨</a>
+  <a href="{{ url_for('admin.users') }}" class="{{ 'on' if ep.startswith('admin.') }}">관리{% if pending_count %} <span class="badge g-over" style="padding:0 6px">{{ pending_count }}</span>{% endif %}</a>
+  {% endif %}
+  <a href="{{ url_for('main.roadmap') }}" class="{{ 'on' if ep == 'main.roadmap' }}">개발 목표</a>
+</nav>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+{% if current_user.is_authenticated %}
+<footer class="ft">데이터는 서버의 공용 DB에 저장되어 같은 서버에 접속한 모든 PC·휴대폰이 같은 내용을 봅니다. 기준표의 검사주기는 예시값이므로 사내 기준에 맞게 수정하세요.</footer>
+{% endif %}
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% if msgs %}<div class="flashes">{% for cat, m in msgs %}<div class="flash {{ cat }}" role="status">{{ m }}<button type="button" aria-label="닫기">×</button></div>{% endfor %}</div>{% endif %}
+{% endwith %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

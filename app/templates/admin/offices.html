@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}사업소 관리{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="card"><h2>사업소</h2>
+  <form method="post">{{ csrf() }}<input type="hidden" name="action" value="save">
+  <div class="tblwrap"><table class="tbl set-tbl"><thead><tr><th style="width:100px">코드</th><th>사업소명</th><th style="width:80px">사용</th><th style="width:80px">등록 장비</th></tr></thead><tbody>
+  {% for o in rows %}
+  <tr{% if not o.is_active %} style="opacity:.6"{% endif %}><td><b>{{ o.code }}</b></td><td><input type="text" name="o{{ o.id }}_name" value="{{ o.name }}" maxlength="100" required></td>
+    <td><label class="small"><input type="checkbox" name="o{{ o.id }}_active" value="1" {{ 'checked' if o.is_active }}> 사용</label></td><td>{{ used.get(o.id, 0) }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">등록된 사업소가 없습니다.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="foot"><button class="btn pri">저장</button></div>
+  </form>
+  <p class="small muted">코드는 관리번호 앞자리(예: <b>SEL</b>-GLV-001)로 쓰이므로 바꿀 수 없습니다. 장비·사용자가 있는 사업소는 삭제 대신 [사용]을 해제하세요.</p>
+  <div class="toolbar">{% for o in rows if not used.get(o.id) %}
+    <form method="post" class="inline" data-confirm="사업소 {{ o.name }}을(를) 삭제할까요?">{{ csrf() }}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ o.id }}"><button class="btn sm danger">{{ o.code }} 삭제</button></form>
+  {% endfor %}</div>
+</div>
+<div class="card"><h3>＋ 사업소 추가</h3>
+  <form method="post">{{ csrf() }}<input type="hidden" name="action" value="add">
+    <div class="form" style="grid-template-columns:120px 1fr auto;align-items:end">
+      <label>코드<input type="text" name="code" placeholder="예: GJU" maxlength="6" required style="text-transform:uppercase"></label>
+      <label>사업소명<input type="text" name="name" maxlength="100" required></label>
+      <button class="btn pri">추가</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

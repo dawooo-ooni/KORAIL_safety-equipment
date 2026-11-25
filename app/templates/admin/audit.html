@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager with context %}
+{% block title %}감사 로그{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="card"><h2>감사 로그</h2>
+  <form method="get" class="toolbar">
+    <select name="action" data-autosubmit><option value="">전체 작업</option>{% for k, l in ACTION_LABEL.items() %}<option value="{{ k }}" {{ 'selected' if args.get('action') == k }}>{{ l }}</option>{% endfor %}</select>
+    <select name="target" data-autosubmit><option value="">전체 대상</option>{% for k, l in TARGET_LABEL.items() %}<option value="{{ k }}" {{ 'selected' if args.get('target') == k }}>{{ l }}</option>{% endfor %}</select>
+    <input type="text" name="user" value="{{ args.get('user', '') }}" placeholder="사용자 아이디" style="width:140px"><button class="btn">조회</button>
+    {% if args %}<a class="btn sm" href="{{ url_for('admin.audit_logs') }}">초기화</a>{% endif %}
+  </form>
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>사용자</th><th>작업</th><th>대상</th><th>변경 전 → 후</th><th>IP</th></tr></thead><tbody>
+  {% for a in pg.items %}
+  <tr><td class="small" style="white-space:nowrap">{{ a.at|d }}</td><td class="small">{{ (a.user.name ~ ' (' ~ a.user.login_id ~ ')') if a.user else '-' }}</td>
+    <td>{{ ACTION_LABEL.get(a.action, a.action) }}</td>
+    <td class="small">{{ TARGET_LABEL.get(a.target_type, a.target_type or '') }}{% if a.target_type == 'equipment' and a.target_id %}{% if eq_names.get(a.target_id) %} <a href="{{ url_for('equipment.detail', eid=a.target_id) }}">{{ eq_names[a.target_id] }}</a>{% else %} #{{ a.target_id }}{% endif %}{% elif a.target_id %} #{{ a.target_id }}{% endif %}</td>
+    <td>{% if a.before_json %}<pre class="diff"><span class="b">{{ a.before_json }}</span></pre>{% endif %}{% if a.after_json %}<pre class="diff"><span class="a">{{ a.after_json }}</span></pre>{% endif %}</td>
+    <td class="small muted">{{ a.ip or '' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">기록이 없습니다.</td></tr>{% endfor %}
+  </tbody></table></div>
+  {{ pager(pg.page, pg.pages, 'admin.audit_logs', args) }}
+</div>
+{% endblock %}

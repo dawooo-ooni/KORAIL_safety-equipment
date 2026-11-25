@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, errors_box with context %}
+{% block title %}작업 전 장비 점검{% endblock %}
+{% block content %}
+<nav class="sub"><a class="on" href="{{ url_for('check.index') }}">점검하기</a><a href="{{ url_for('check.history') }}">점검 기록</a></nav>
+<div class="card"><h2>작업 전 장비 점검 (투입 장비 적합성 확인)</h2>
+  <p class="muted small" style="margin-top:-6px">작업일자를 고르고 투입할 장비를 선택하면 작업일 기준으로 검사 유효 여부를 판정하고 결과를 저장합니다.</p>
+  {{ errors_box(errors) }}
+  <form method="post">
+    {{ csrf() }}
+    <div class="grid2 even">
+      <div>
+        <div class="form" style="grid-template-columns:160px 1fr">
+          <label>작업일자<span class="req">*</span><input type="date" name="work_date" value="{{ form.work_date }}" required></label>
+          <label>작업명 <span class="muted small" style="font-weight:400">(선택)</span><input type="text" name="work_title" value="{{ form.work_title }}" maxlength="200" placeholder="예: ○○역 전차선 보수"></label>
+        </div>
+        <p class="small" style="margin:12px 0 4px"><b>관리번호 직접 입력</b> <span class="muted">(쉼표·공백·줄바꿈으로 구분, QR 스캐너로 입력해도 됩니다)</span></p>
+        <textarea name="nos" id="nos" style="width:100%;height:110px" placeholder="예: SEL-GLV-001, SEL-DHV-002">{{ form.nos }}</textarea>
+        <div class="toolbar" style="margin-top:8px"><button class="btn pri" type="submit">✔ 판정하고 저장</button><button class="btn" type="button" id="ckClear">선택 초기화</button></div>
+      </div>
+      <div>
+        <p class="small" style="margin:0 0 4px"><b>목록에서 선택</b> <span class="muted">(<span id="pickCount">0</span>개 선택됨)</span></p>
+        <input type="search" placeholder="관리번호·구분·사업소 검색" data-filter-list="pickList" style="width:100%;margin-bottom:6px">
+        <div class="pick" id="pickList">
+          {% for e in equipment %}<label><input type="checkbox" name="pickui" value="{{ e.mgmt_no }}"> <b>{{ e.mgmt_no }}</b> <span class="muted">{{ e.etype.name }} · {{ e.office.name }}{% if e.manager_display %} · {{ e.manager_display }}{% endif %}</span></label>
+          {% else %}<p class="muted" style="padding:10px">등록된 장비가 없습니다.</p>{% endfor %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% if result %}
+{% set bad = result.items|rejectattr('verdict', 'equalto', '적합')|list %}
+<div class="card" id="result"><h3>판정 결과 · 작업일 {{ result.work_date|d }}{% if result.work_title %} · {{ result.work_title }}{% endif %}</h3>
+  <p class="small muted" style="margin-top:-6px">점검자 {{ result.checker.name }} · 저장 {{ result.created_at|d }} · 기록 번호 #{{ result.id }}</p>
+  {% if bad %}<div class="banner bad">⚠ 투입 불가 장비 있음 ({{ bad|length }}건 / 전체 {{ result.items|length }}건) — 해당 장비는 작업에 투입하지 마세요.</div>
+  {% else %}<div class="banner good">✅ 선택한 장비 {{ result.items|length }}건 모두 작업일 기준 투입 가능합니다.</div>{% endif %}
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>판정</th><th>관리번호</th><th>장비구분</th><th>사업소</th><th>차기검사일</th><th>작업일 기준</th><th>사유</th></tr></thead><tbody>
+  {% for it in result.items %}
+  <tr class="r-{{ css[it.verdict] }}"><td><b class="dd {{ css[it.verdict] }}">{{ label[it.verdict] }}</b></td>
+    <td>{% if it.equipment %}<a href="{{ url_for('equipment.detail', eid=it.equipment.id) }}"><b>{{ it.mgmt_no }}</b></a>{% else %}<b>{{ it.mgmt_no }}</b>{% endif %}</td>
+    <td>{{ it.equipment.etype.name if it.equipment else '-' }}</td><td>{{ it.equipment.office.name if it.equipment else '-' }}</td>
+    <td>{{ it.next_inspect_date|d or '-' }}</td><td>{{ ((it.next_inspect_date - result.work_date).days)|dd if it.next_inspect_date else '-' }}</td><td class="small">{{ it.reason or '' }}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+  <div class="toolbar" style="margin-top:12px"><a class="btn" href="{{ url_for('check.print_check', cid=result.id) }}" target="_blank" rel="noopener">🖨 결과 인쇄 (확인자 서명란)</a><a class="btn" href="{{ url_for('check.history') }}">점검 기록 보기</a></div>
+</div>
+{% endif %}
+{% endblock %}

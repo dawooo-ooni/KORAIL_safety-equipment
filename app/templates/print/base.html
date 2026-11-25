@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% endblock %}</title>
+<style>
+body{font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:10.5pt;color:#111;margin:0}
+h1{font-size:15pt;margin:0 0 4px}.sub{font-size:9pt;color:#555;margin-bottom:8px}
+table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:3px 5px;font-size:9pt;text-align:left}th{background:#e8eef8}
+thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}
+.b{font-weight:700}.over{color:#c62828}.urg{color:#d35400}.warn{color:#8a6100}.ok{color:#2e7d32}.dead{color:#37474f}
+.banner{border:2px solid;padding:6px 10px;font-weight:700;margin-bottom:8px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:13px;flex-wrap:wrap}
+.toolbar button,.toolbar a{border:1px solid #c9d2e0;background:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;text-decoration:none;color:#14284b}
+.toolbar button.pri{background:#14284b;color:#fff;border-color:#14284b}
+{% block style %}{% endblock %}
+@media screen{body{padding:16px;background:#eef1f5}.wrap{background:#fff;padding:14px;max-width:{% block screenwidth %}800px{% endblock %};margin:0 auto;box-shadow:0 2px 10px rgba(0,0,0,.08)}}
+@media print{.toolbar,.noprint{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body {% if request.args.get('auto') == '1' %}data-autoprint{% endif %}>
+<div class="toolbar noprint" style="max-width:{{ self.screenwidth() }};margin:0 auto 12px">
+  <button class="pri" type="button" data-print>🖨 인쇄 (Ctrl+P)</button>
+  <span style="color:#555">{% block hint %}브라우저 인쇄 창에서 용지 A4를 선택하세요.{% endblock %}</span>
+</div>
+{% block body %}{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

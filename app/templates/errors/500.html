@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block title %}오류{% endblock %}
+{% block content %}<div class="errpage card"><div class="code">500</div><h2>처리 중 오류가 발생했습니다</h2><p class="muted">잠시 후 다시 시도하세요. 계속되면 관리자에게 알려 주세요.</p><a class="btn pri" href="{{ url_for('main.dashboard') }}">대시보드로</a></div>{% endblock %}

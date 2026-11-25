@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}설정{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<form method="post">{{ csrf() }}<input type="hidden" name="action" value="save">
+<div class="grid2 even">
+  <div class="card"><h2>경보 등급 기준</h2>
+    <div class="form">
+      <label>🟠 긴급 기준 (일 이내)<input type="number" name="urgent_days" min="0" value="{{ s.urgent_days }}" required></label>
+      <label>🟡 주의 기준 (일 이내)<input type="number" name="warn_days" min="1" value="{{ s.warn_days }}" required></label>
+    </div>
+    <p class="small muted">남은 일수 0~{{ s.urgent_days }}일 긴급, {{ s.urgent_days|int + 1 }}~{{ s.warn_days }}일 주의, 그 이상 정상, 음수는 기한초과입니다.</p>
+    <h2 style="margin-top:16px">회원가입</h2>
+    <label class="small"><input type="checkbox" name="allow_signup" value="1" {{ 'checked' if s.allow_signup == '1' }}> 회원가입 신청 받기</label>
+  </div>
+  <div class="card"><h2>자동 알림</h2>
+    {% if mail_state == 'unset' %}<div class="errbox">⚠ {{ mail_msg }}</div>{% elif mail_state == 'console' %}<div class="note">ℹ {{ mail_msg }}</div>{% else %}<div class="info">✉ {{ mail_msg }}</div>{% endif %}
+    {% if config.ON_VERCEL %}<div class="info">Vercel Cron이 <b>매일 08:00(한국 시간)</b>에 자동 알림을 실행합니다. 아래 [매일 자동 알림 발송]을 켜야 실제로 보냅니다. (Vercel에서는 발송 시각 값이 적용되지 않으며, 시각을 바꾸려면 <code>vercel.json</code>의 crons 일정을 수정합니다.)</div>
+    {% elif not scheduler_on %}<div class="note">앱 내 스케줄러가 꺼져 있습니다 (<code>.env</code> <code>SCHEDULER_ENABLED=0</code>). 자동 발송을 쓰려면 1로 바꾸고 서버를 다시 시작하거나, OS 작업 스케줄러에 <code>flask send-alerts</code>를 등록하세요.</div>{% endif %}
+    <div class="form">
+      <label class="chk full"><input type="checkbox" name="alert_enabled" value="1" {{ 'checked' if s.alert_enabled == '1' }} {{ 'disabled' if mail_state == 'unset' }}> 매일 자동 알림 발송</label>
+      <label>발송 시각<input type="time" name="alert_time" value="{{ s.alert_time }}" required></label>
+      <label class="full">참조 수신자 <span class="muted small" style="font-weight:400">(안전 담당 부서 등, 쉼표로 구분)</span><input type="text" name="alert_cc" value="{{ s.alert_cc }}" maxlength="500" placeholder="safety@example.com"></label>
+    </div>
+  </div>
+</div>
+<div class="card" style="display:flex;justify-content:flex-end"><button class="btn pri">설정 저장</button></div>
+</form>
+
+<div class="grid2 even">
+  <div class="card"><h2>QR 기준 주소</h2>
+    <p>현재: <code>{{ base_url }}</code></p>
+    <p class="small muted">QR에는 <code>{{ base_url }}/q/관리번호</code>가 들어갑니다. 서버의 <code>.env</code> 파일 <code>APP_BASE_URL</code>에서 바꿀 수 있습니다(바꾼 뒤 서버 재시작). 휴대폰 시험 시 PC의 사내 IP 주소로 설정하세요.</p>
+  </div>
+  <div class="card"><h2>로고 이미지</h2>
+    <p class="small muted" style="margin-top:-4px">사내에서 사용하는 로고 파일(PNG·JPG)을 등록하면 상단에 표시됩니다. 회사 로고는 기본으로 넣지 않습니다.</p>
+    {% if logo_on %}<p><img src="{{ url_for('main.logo') }}" alt="현재 로고" style="max-height:50px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px"></p>{% endif %}
+    <div class="toolbar">
+      <form method="post" enctype="multipart/form-data" class="inline">{{ csrf() }}<input type="hidden" name="action" value="logo"><label class="btn">로고 파일 선택<input type="file" name="logo" accept="image/png,image/jpeg" data-autoupload hidden></label></form>
+      {% if logo_on %}<form method="post" class="inline" data-confirm="로고를 삭제할까요?">{{ csrf() }}<input type="hidden" name="action" value="logo_delete"><button class="btn danger">로고 삭제</button></form>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card"><h2>샘플 데이터</h2>
+  {% if n_sample or n_sample_users %}
+  <p>샘플 장비 <b>{{ n_sample }}건</b>, 체험용 예시 계정 <b>{{ n_sample_users }}개</b>(manager01, user01~04)가 있습니다. 직접 등록하거나 수정한 장비, 직접 만든 계정은 남습니다.</p>
+  <form method="post" action="{{ url_for('admin.samples_delete') }}" data-confirm="샘플 장비 {{ n_sample }}건과 예시 계정을 삭제할까요? 되돌릴 수 없습니다.">{{ csrf() }}<button class="btn danger">샘플 데이터 삭제</button></form>
+  {% else %}<p class="muted">샘플 데이터가 없습니다.</p>{% endif %}
+</div>
+{% endblock %}

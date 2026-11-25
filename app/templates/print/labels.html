@@ -1,0 +1,27 @@
+{% extends "print/base.html" %}
+{% block title %}장비 QR 라벨 {{ issued|d }}{% endblock %}
+{% block style %}
+@page{size:A4 portrait;margin:0}
+.sheet{width:210mm;height:297mm;padding:4.5mm 10.5mm;box-sizing:border-box;display:grid;grid-template-columns:repeat(3,63mm);grid-auto-rows:36mm;align-content:start;break-after:page;page-break-after:always;background:#fff}
+.sheet:last-child{break-after:auto;page-break-after:auto}
+.label{box-sizing:border-box;height:36mm;padding:2.5mm;display:flex;gap:2.5mm;align-items:center;overflow:hidden;break-inside:avoid}
+.label img{width:30mm;height:30mm;flex:none;image-rendering:pixelated}
+.label .t{font-size:8pt;line-height:1.35;min-width:0}.label .t b{font-size:9.5pt}
+.label .t .no{font-size:10pt;font-weight:700;word-break:break-all}
+@media screen{.sheet{margin:0 auto 16px;box-shadow:0 2px 10px rgba(0,0,0,.12)}.label{outline:1px dashed #bbb;outline-offset:-1px}}
+{% endblock %}
+{% block screenwidth %}210mm{% endblock %}
+{% block hint %}{{ count }}개 · A4 {{ sheets|length }}장 (한 장에 3열×8행=24개, 63×36mm). 인쇄 설정: 여백 없음(또는 기본), 배율 100%·실제 크기. 화면의 점선은 인쇄되지 않습니다.{% endblock %}
+{% block body %}
+{% if not count %}<div class="wrap"><p>선택한 장비가 없습니다. QR 라벨 화면에서 장비를 선택하세요.</p></div>{% endif %}
+{% for sheet in sheets %}
+<div class="sheet">
+  {% for cell in sheet %}
+    {% if cell %}{% set e, st = cell %}
+    <div class="label"><img src="{{ url_for('labels.qr_image', mgmt_no=e.mgmt_no, s=10) }}" alt="QR {{ e.mgmt_no }}">
+      <div class="t"><div class="no">{{ e.mgmt_no }}</div>{{ e.etype.name }}<br>{{ e.office.name }}<br>차기검사 <b>{{ st.next_inspect|d }}</b><br><span style="color:#666">발행 {{ issued|d }}</span></div></div>
+    {% else %}<div class="label"></div>{% endif %}
+  {% endfor %}
+</div>
+{% endfor %}
+{% endblock %}

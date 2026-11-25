@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, errors_box with context %}
+{% block title %}{{ '장비 수정' if eq else '장비 등록' }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:860px;margin:0 auto">
+  <h2>{% if eq %}장비 수정 · {{ eq.mgmt_no }}{% else %}장비 등록{% endif %}</h2>
+  <div class="info">필수 항목(<span class="req">*</span>)만 입력하면 차기검사일·남은 일수·경보 등급이 자동으로 계산됩니다. 관리번호는 <b>사업소코드-구분코드-순번</b>으로 자동으로 만들어집니다{% if eq %} (사업소·장비구분을 바꾸면 새 번호가 붙습니다){% endif %}.</div>
+  {{ errors_box(errors) }}
+  {% if conflict %}
+  <div class="conflict"><b>⚠ 다른 사용자가 먼저 저장한 최신 값</b> — 강조된 항목이 내가 입력한 값과 다릅니다. 확인 후 [저장]을 누르면 내 입력값으로 덮어씁니다.
+    <table><tr><th>항목</th><th>최신 저장값</th><th>내 입력값</th></tr>
+    {% for k, lab in [('office_id','사업소'),('type_id','장비구분'),('last_inspect_date','최종검사일'),('last_result','최종결과'),('model','모델/규격'),('serial_no','제조번호'),('issue_date','지급일'),('status','상태'),('manager_name','담당자'),('manager_email','담당자 이메일'),('location','보관위치'),('note','비고')] %}
+      {% set a = conflict[k]|string %}{% set b = (v[k] if v[k] is not none else '')|string %}
+      {% if a != b and not (a in ('None','') and b in ('None','')) %}<tr class="chg"><td>{{ lab }}</td><td>{{ conflict[k] if conflict[k] is not none else '' }}</td><td>{{ v[k] if v[k] is not none else '' }}</td></tr>{% endif %}
+    {% endfor %}</table>
+  </div>
+  {% endif %}
+  <form method="post">
+    {{ csrf() }}
+    {% if eq %}<input type="hidden" name="version" value="{{ v.version }}">{% endif %}
+    <div class="form">
+      <label>사업소<span class="req">*</span><select name="office_id" id="office_id" required><option value="">사업소 선택</option>
+        {% for o in offices if o.is_active or (v.office_id == o.id) %}<option value="{{ o.id }}" {{ 'selected' if v.office_id == o.id }}>{{ o.name }}{{ ' (사용 안 함)' if not o.is_active }}</option>{% endfor %}</select></label>
+      <label>장비구분<span class="req">*</span><select name="type_id" id="type_id" required><option value="">장비구분 선택</option>
+        {% for t in types if t.is_active or (v.type_id == t.id) %}<option value="{{ t.id }}" {{ 'selected' if v.type_id == t.id }}>{{ t.name }} (검사 {{ t.inspect_months }}개월{% if t.replace_months %}·교체 {{ t.replace_months }}개월{% endif %})</option>{% endfor %}</select></label>
+      <label>최종검사일<span class="req">*</span><input type="date" name="last_inspect_date" id="last_inspect_date" value="{{ v.last_inspect_date or '' }}" max="{{ today|d }}" required></label>
+      <label>최종검사결과<select name="last_result" id="last_result">{% for r in results %}<option {{ 'selected' if v.last_result == r }}>{{ r }}</option>{% endfor %}</select></label>
+      <label>모델/규격<input type="text" name="model" value="{{ v.model or '' }}" maxlength="100"></label>
+      <label>제조번호<input type="text" name="serial_no" value="{{ v.serial_no or '' }}" maxlength="100"></label>
+      <label>지급일(또는 제조일)<input type="date" name="issue_date" id="issue_date" value="{{ v.issue_date or '' }}" max="{{ today|d }}"></label>
+      <label>상태<select name="status" id="status">{% for s in statuses %}<option {{ 'selected' if v.status == s }}>{{ s }}</option>{% endfor %}</select></label>
+      <label>담당자 계정 <span class="muted small" style="font-weight:400">(계정이 있으면 선택 — 이름·이메일 자동)</span><select name="manager_user_id"><option value="">선택 안 함 (아래 직접 입력)</option>
+        {% for u in users %}<option value="{{ u.id }}" {{ 'selected' if v.manager_user_id == u.id }}>{{ u.name }} ({{ u.login_id }}{% if u.office %} · {{ u.office.name }}{% endif %})</option>{% endfor %}</select></label>
+      <label>보관위치<input type="text" name="location" value="{{ v.location or '' }}" maxlength="100"></label>
+      <label>담당자 이름 <span class="muted small" style="font-weight:400">(계정이 없는 담당자)</span><input type="text" name="manager_name" value="{{ v.manager_name or '' }}" maxlength="50"></label>
+      <label>담당자 이메일<input type="email" name="manager_email" value="{{ v.manager_email or '' }}" maxlength="120"></label>
+      <label class="full">비고<input type="text" name="note" value="{{ v.note or '' }}" maxlength="300"></label>
+    </div>
+    <div id="calcPreview" class="small" style="margin-top:12px" data-url="{{ url_for('equipment.preview') }}"></div>
+    <div class="foot">
+      <a class="btn" href="{{ url_for('equipment.detail', eid=eq.id) if eq else url_for('equipment.index') }}">취소</a>
+      <button class="btn pri" type="submit">저장</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

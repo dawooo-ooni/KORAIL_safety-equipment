@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager with context %}
+{% block title %}점검 기록{% endblock %}
+{% block content %}
+<nav class="sub"><a href="{{ url_for('check.index') }}">점검하기</a><a class="on" href="{{ url_for('check.history') }}">점검 기록</a></nav>
+<div class="card"><div class="toolbar"><h2 style="margin:0">작업 전 점검 기록</h2><div class="grow"></div>
+  {% if request.args.get('bad') == '1' %}<a class="btn sm" href="{{ url_for('check.history') }}">전체 보기</a>{% else %}<a class="btn sm" href="{{ url_for('check.history', bad=1) }}">투입 불가 있는 기록만</a>{% endif %}</div>
+<div class="tblwrap"><table class="tbl"><thead><tr><th>#</th><th>작업일</th><th>작업명</th><th>점검자</th><th>장비 수</th><th>결과</th><th>저장일시</th><th></th></tr></thead><tbody>
+{% for wc in pg.items %}
+<tr data-href="{{ url_for('check.index', id=wc.id) }}#result"><td>{{ wc.id }}</td><td>{{ wc.work_date|d }}</td><td>{{ wc.work_title or '-' }}</td><td>{{ wc.checker.name }}</td><td>{{ wc.items|length }}</td>
+<td>{% if wc.all_ok %}<span class="badge g-ok">✅ 전체 투입 가능</span>{% else %}<span class="badge g-over">⚠ 투입 불가 {{ wc.items|rejectattr('verdict','equalto','적합')|list|length }}건</span>{% endif %}</td>
+<td class="small muted">{{ wc.created_at|d }}</td><td><a class="btn sm" href="{{ url_for('check.print_check', cid=wc.id) }}" target="_blank" rel="noopener">인쇄</a></td></tr>
+{% else %}<tr><td colspan="8" class="muted" style="text-align:center;padding:24px">점검 기록이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div>
+{{ pager(pg.page, pg.pages, 'check.history', ({'bad': '1'} if request.args.get('bad') == '1' else {})) }}
+</div>
+{% endblock %}

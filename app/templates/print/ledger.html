@@ -1,0 +1,17 @@
+{% extends "print/base.html" %}
+{% block title %}안전장비/보호구 관리 대장 {{ today|d }}{% endblock %}
+{% block style %}@page{size:A4 landscape;margin:10mm}{% endblock %}
+{% block screenwidth %}1100px{% endblock %}
+{% block hint %}용지 A4 · 방향 가로로 인쇄하세요. 현재 대장 화면의 검색·필터가 적용되어 있습니다.{% endblock %}
+{% block body %}
+<div class="wrap">
+<h1>안전장비/보호구 관리 대장{% if office %} — {{ office.name }}{% endif %}</h1>
+<div class="sub">기준일 {{ today|d }} · {{ rows|length }}건 · 기한초과 {{ cnt.over }} / 긴급 {{ cnt.urgent }} / 주의 {{ cnt.warn }} / 정상 {{ cnt.ok }} / 사용불가 {{ cnt.unusable }} · 출력자 {{ current_user.name }}</div>
+<table><thead><tr><th>경보</th><th>관리번호</th><th>사업소</th><th>장비구분</th><th>모델/규격</th><th>제조번호</th><th>최종검사일</th><th>결과</th><th>차기검사일</th><th>남은 일수</th><th>교체예정일</th><th>상태</th><th>담당자</th><th>보관위치</th></tr></thead><tbody>
+{% for r in rows %}{% set e = r.eq %}{% set c = GRADES[r.st.grade].css %}
+<tr><td class="b {{ c }}">{{ GRADES[r.st.grade].icon }} {{ GRADES[r.st.grade].label }}</td><td class="b">{{ e.mgmt_no }}</td><td>{{ e.office.name }}</td><td>{{ e.etype.name }}</td><td>{{ e.model or '' }}</td><td>{{ e.serial_no or '' }}</td>
+<td>{{ e.last_inspect_date|d }}</td><td>{{ e.last_result }}</td><td>{{ r.st.next_inspect|d }}</td><td class="b {{ c }}">{{ r.st.days_left|dd }}</td><td>{{ r.st.replace_due|d or '-' }}</td><td>{{ e.status }}</td><td>{{ e.manager_display }}</td><td>{{ e.location or '' }}</td></tr>
+{% endfor %}
+</tbody></table>
+</div>
+{% endblock %}

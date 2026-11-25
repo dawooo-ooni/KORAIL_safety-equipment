@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, dd, ticon, csrf with context %}
+{% block title %}{{ eq.mgmt_no }}{% endblock %}
+{% block content %}
+{% if scanned %}<div class="info">📷 QR 스캔 — 서버 DB 기준 최신 정보입니다.</div>{% endif %}
+<div class="card">
+  <div class="toolbar"><h2 style="margin:0">{{ eq.mgmt_no }} {{ badge(st.grade) }}</h2>{% if eq.is_sample %}<span class="badge g-light">샘플</span>{% endif %}<div class="grow"></div>
+    <a class="btn" href="{{ url_for('equipment.index') }}">← 대장 목록</a></div>
+  <div class="detail-top">
+    <div class="side">
+      {% set ph = eq.primary_photo %}
+      <div class="photo">
+        {% if ph %}<img class="real" src="{{ url_for('equipment.photo_file', pid=ph.id) }}" alt="{{ eq.mgmt_no }} 실물 사진"><div class="small muted">실물 사진 · {{ ph.uploaded_at|d }}</div>
+        {% else %}{{ ticon(eq.etype, 150) }}<div class="small muted">예시 그림</div>{% endif %}
+      </div>
+      {% if current_user.is_admin %}
+      <div style="display:flex;gap:4px;justify-content:center;margin-top:6px;flex-wrap:wrap">
+        <form method="post" action="{{ url_for('equipment.photo', eid=eq.id) }}" enctype="multipart/form-data" class="inline">{{ csrf() }}
+          <label class="btn sm">📷 {{ '사진 바꾸기' if ph else '사진 올리기' }}<input type="file" name="photo" accept="image/*" data-autoupload hidden></label>
+        </form>
+        {% if ph %}<form method="post" action="{{ url_for('equipment.photo', eid=eq.id) }}" class="inline" data-confirm="등록한 실물 사진을 삭제할까요? 삭제하면 예시 그림이 표시됩니다.">{{ csrf() }}<input type="hidden" name="_method" value="DELETE"><button class="btn sm danger">삭제</button></form>{% endif %}
+      </div>
+      <p class="small muted" style="text-align:center;margin:4px 0 0">jpg·png 최대 {{ config.UPLOAD_MAX_MB }}MB, 자동으로 줄여 저장</p>
+      {% endif %}
+    </div>
+    <div style="flex:1;min-width:0">
+      <dl class="kv">
+        <dt>장비구분</dt><dd>{{ eq.etype.name }}</dd><dt>사업소</dt><dd>{{ eq.office.name }}</dd>
+        <dt>모델/규격</dt><dd>{{ eq.model or '-' }}</dd><dt>제조번호</dt><dd>{{ eq.serial_no or '-' }}</dd>
+        <dt>지급일</dt><dd>{{ eq.issue_date|d or '-' }}</dd><dt>상태</dt><dd>{{ eq.status }}</dd>
+        <dt>최종검사일</dt><dd>{{ eq.last_inspect_date|d }}</dd><dt>최종결과</dt><dd>{% if eq.last_result == '불합격' %}<b style="color:var(--over)">불합격</b>{% else %}합격{% endif %}</dd>
+        <dt>차기검사일</dt><dd><b>{{ st.next_inspect|d }}</b> <span class="small muted">(검사주기 {{ eq.etype.inspect_months }}개월)</span></dd><dt>남은 일수</dt><dd>{{ dd(st) }}</dd>
+        <dt>교체예정일</dt><dd>{% if st.replace_due %}{{ st.replace_due|d }} ({{ st.replace_days_left|dd }}){% else %}미적용{% endif %}</dd><dt>경보 사유</dt><dd>{{ st.reason or '-' }}</dd>
+        <dt>담당자</dt><dd>{{ eq.manager_display or '-' }}</dd><dt>이메일</dt><dd>{{ eq.manager_mail or '-' }}</dd>
+        <dt>보관위치</dt><dd>{{ eq.location or '-' }}</dd><dt>비고</dt><dd>{{ eq.note or '-' }}</dd>
+      </dl>
+      {% if eq.updater %}<p class="small muted" style="margin:10px 0 0">최종 수정: {{ eq.updater.name }} ({{ eq.updater.login_id }}) · {{ eq.updated_at|d }}</p>{% endif %}
+    </div>
+    <div class="qr"><img src="{{ url_for('labels.qr_image', mgmt_no=eq.mgmt_no) }}" alt="{{ eq.mgmt_no }} QR 코드"><div class="small muted">장비 QR</div>
+      <div class="small muted" style="word-break:break-all;font-size:10px">{{ qr_target }}</div></div>
+  </div>
+  {% if current_user.is_admin %}
+  <div class="foot">
+    <details class="tool" style="margin-right:auto"><summary style="color:var(--over)">장비 삭제</summary>
+      <form method="post" action="{{ url_for('equipment.delete', eid=eq.id) }}" style="margin-top:8px" data-confirm="정말 삭제할까요? 검사 이력·사진도 함께 삭제되며 되돌릴 수 없습니다.">{{ csrf() }}
+        <p class="small muted" style="margin:0 0 6px">폐기된 장비는 삭제 대신 상태를 '폐기'로 바꾸는 것을 권장합니다. 삭제하려면 관리번호 <b>{{ eq.mgmt_no }}</b>를 입력하세요.</p>
+        <input type="text" name="confirm_no" placeholder="{{ eq.mgmt_no }}" autocomplete="off"> <button class="btn danger">삭제</button>
+      </form></details>
+    <a class="btn" href="{{ url_for('equipment.edit', eid=eq.id) }}">수정</a>
+    <a class="btn pri" href="{{ url_for('equipment.inspect', eid=eq.id) }}">검사 등록</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card"><h3>검사 이력 ({{ eq.inspections|length }}건)</h3>
+<div class="tblwrap"><table class="tbl"><thead><tr><th>검사일</th><th>결과</th><th>검사자(기관)</th><th>메모</th><th>등록자</th><th>등록일시</th>{% if current_user.is_admin %}<th></th>{% endif %}</tr></thead><tbody>
+{% for i in eq.inspections %}
+<tr><td>{{ i.inspect_date|d }}</td><td>{% if i.result == '불합격' %}<b style="color:var(--over)">불합격</b>{% else %}합격{% endif %}</td><td>{{ i.inspector or '-' }}</td><td>{{ i.memo or '' }}</td>
+<td class="small muted">{{ i.creator.name if i.creator else '-' }}</td><td class="small muted">{{ i.created_at|d }}</td>
+{% if current_user.is_admin %}<td>{% if eq.inspections|length > 1 %}<form method="post" action="{{ url_for('equipment.inspect_delete', eid=eq.id, iid=i.id) }}" class="inline" data-confirm="{{ i.inspect_date|d }} 검사 이력을 삭제할까요? 최종검사일은 남은 이력 중 가장 최근 것으로 다시 맞춰집니다.">{{ csrf() }}<button class="btn sm danger">삭제</button></form>{% endif %}</td>{% endif %}</tr>
+{% else %}<tr><td colspan="7" class="muted">이력이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div></div>
+
+{% if current_user.is_admin %}
+<div class="card"><h3>변경 이력 <span class="small muted">(관리자만 보임 · 최근 100건)</span></h3>
+<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>작업</th><th>사용자</th><th>변경 내용</th></tr></thead><tbody>
+{% for a in changes %}
+<tr><td class="small" style="white-space:nowrap">{{ a.at|d }}</td><td>{{ a.action }}</td><td class="small">{{ a.user.name if a.user else '-' }}</td>
+<td>{% if a.before_json %}<pre class="diff"><span class="b">전: {{ a.before_json }}</span></pre>{% endif %}{% if a.after_json %}<pre class="diff"><span class="a">후: {{ a.after_json }}</span></pre>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">변경 이력이 없습니다.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, ticon with context %}
+{% block title %}장비구분 기준표{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="card"><h2>장비구분 기준표</h2>
+  <div class="note">⚠ 검사주기(6개월)는 <b>예시값</b>입니다. 사내 안전 규정의 실제 검사·교체 주기로 수정하세요. 값을 바꾸면 전체 장비의 차기검사일·남은 일수가 즉시 다시 계산됩니다.</div>
+  <form method="post">{{ csrf() }}<input type="hidden" name="action" value="save">
+  <div class="tblwrap"><table class="tbl set-tbl"><thead><tr><th style="width:110px">코드</th><th>장비구분명</th><th style="width:120px">검사주기(개월)</th><th style="width:130px">교체주기(개월)</th><th style="width:80px">표시 순서</th><th style="width:80px">사용</th><th style="width:70px">등록 수</th></tr></thead><tbody>
+  {% for t in rows %}
+  <tr{% if not t.is_active %} style="opacity:.6"{% endif %}><td><span class="tcell">{{ ticon(t, 26) }}<b>{{ t.code }}</b></span></td>
+    <td><input type="text" name="t{{ t.id }}_name" value="{{ t.name }}" maxlength="100" required></td>
+    <td><input type="number" name="t{{ t.id }}_inspect" value="{{ t.inspect_months }}" min="1" max="120" required></td>
+    <td><input type="number" name="t{{ t.id }}_replace" value="{{ t.replace_months or '' }}" min="1" max="600" placeholder="미적용"></td>
+    <td><input type="number" name="t{{ t.id }}_order" value="{{ t.sort_order }}" min="0"></td>
+    <td><label class="small"><input type="checkbox" name="t{{ t.id }}_active" value="1" {{ 'checked' if t.is_active }}> 사용</label></td>
+    <td>{{ used.get(t.id, 0) }}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+  <div class="foot"><button class="btn pri" data-confirm="기준표를 저장할까요? 전체 장비의 차기검사일이 다시 계산됩니다.">기준표 저장</button></div>
+  </form>
+  <p class="small muted">코드는 영문 대문자·숫자 1~6자이며 관리번호와 QR에 쓰이므로 등록 후에는 바꿀 수 없습니다. 장비가 등록된 구분은 삭제할 수 없고 [사용] 해제만 할 수 있습니다(신규 등록 목록에서 숨김).</p>
+  <h3 style="margin-top:16px">사용하지 않는 구분 삭제</h3>
+  <div class="toolbar">{% for t in rows if not used.get(t.id) %}
+    <form method="post" class="inline" data-confirm="장비구분 {{ t.name }}을(를) 삭제할까요?">{{ csrf() }}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ t.id }}"><button class="btn sm danger">{{ t.code }} 삭제</button></form>
+  {% else %}<span class="muted small">모든 구분에 등록된 장비가 있습니다.</span>{% endfor %}</div>
+</div>
+<div class="card"><h3>＋ 장비구분 추가</h3>
+  <form method="post">{{ csrf() }}<input type="hidden" name="action" value="add">
+    <div class="form" style="grid-template-columns:110px 1fr 140px 140px auto;align-items:end">
+      <label>코드<input type="text" name="code" placeholder="예: ABC" maxlength="6" required style="text-transform:uppercase"></label>
+      <label>장비구분명<input type="text" name="name" maxlength="100" required></label>
+      <label>검사주기(개월)<input type="number" name="inspect_months" value="6" min="1" max="120" required></label>
+      <label>교체주기(개월)<input type="number" name="replace_months" min="1" max="600" placeholder="미적용"></label>
+      <button class="btn pri">추가</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, ticon with context %}
+{% block title %}장비 정보 카드{% endblock %}
+{% block content %}
+<div class="card" style="max-width:520px;margin:0 auto">
+  <h2>📷 장비 정보 카드</h2>
+  {% if not eq %}
+    <div class="errbox">대장에 등록되지 않은 관리번호입니다: <b>{{ mgmt_no }}</b><br>라벨이 잘못되었거나 장비가 삭제되었을 수 있습니다. 사용하지 말고 관리자에게 확인하세요.</div>
+  {% else %}
+    {% set msg = {'over': '검사 기한이 지났습니다. 사용하지 마세요.', 'unusable': '사용할 수 없는 장비입니다.', 'urgent': '검사 기한이 임박했습니다.', 'warn': '검사 예정 장비입니다.', 'ok': '사용 가능한 장비입니다.'}[st.grade] %}
+    <div class="scan">
+      <div>{{ badge(st.grade) }}</div>
+      <div style="margin:8px 0">{{ ticon(eq.etype, 72) }}</div>
+      <div class="big">{{ eq.mgmt_no }}</div>
+      <div>{{ eq.etype.name }} · {{ eq.office.name }}</div>
+      <div class="ddbig dd {{ GRADES[st.grade].css }}">{{ st.days_left|dd }}</div>
+      <div><b>{{ msg }}</b>{% if st.reason %} <span class="muted">({{ st.reason }})</span>{% endif %}</div>
+    </div>
+    <dl class="kv" style="margin-top:16px;grid-template-columns:100px 1fr">
+      <dt>차기검사일</dt><dd><b>{{ st.next_inspect|d }}</b></dd>
+      {% if st.replace_due %}<dt>교체예정일</dt><dd>{{ st.replace_due|d }}</dd>{% endif %}
+      <dt>조회 기준</dt><dd>{{ today|d }} 서버 DB 최신 정보</dd>
+    </dl>
+  {% endif %}
+  <div class="foot"><a class="btn pri" href="{{ url_for('auth.login', next=url_for('labels.scan', mgmt_no=mgmt_no)) }}">로그인하고 전체 이력 보기</a></div>
+</div>
+{% endblock %}
