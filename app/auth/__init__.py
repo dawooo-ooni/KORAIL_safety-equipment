@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from sqlalchemy import update
 
 from ..extensions import db
 from ..models import Office, User
@@ -22,6 +23,14 @@ def _safe_next(target):
         return None
     u = urlparse(target)
     return target if (not u.netloc and not u.scheme and target.startswith("/")) else None
+
+
+def _password_ok(u, pw):
+    """복사·붙여넣기로 앞뒤에 공백·줄바꿈이 끼어든 경우도 허용 (비밀번호 규칙상 앞뒤 공백은 쓰지 않음)."""
+    if u.check_password(pw):
+        return True
+    stripped = pw.strip()
+    return stripped != pw and bool(stripped) and u.check_password(stripped)
 
 
 def _find(login_id):
@@ -43,14 +52,20 @@ def login():
         if u and u.locked_until and u.locked_until > now:
             left = int((u.locked_until - now).total_seconds() // 60) + 1
             error = f"로그인 시도가 너무 많아 잠겼습니다. 약 {left}분 후 다시 시도하세요."
-        elif not u or not u.check_password(pw):
+        elif not u or not _password_ok(u, pw):
             if u:
-                u.failed_logins = (u.failed_logins or 0) + 1
+                # 동시에 여러 요청이 와도 횟수가 빠지지 않도록 DB 에서 바로 1 증가
+                db.session.execute(update(User).where(User.id == u.id)
+                                   .values(failed_logins=User.failed_logins + 1))
+                db.session.refresh(u)
                 if u.failed_logins >= MAX_FAILS:
                     u.locked_until = now + timedelta(minutes=LOCK_MINUTES)
                     u.failed_logins = 0
                     error = f"비밀번호를 {MAX_FAILS}회 잘못 입력해 {LOCK_MINUTES}분 동안 로그인이 잠겼습니다."
                     audit.log("login_lock", "user", u.id, None, {"login_id": u.login_id}, user_id=None)
+                else:
+                    error = (f"아이디 또는 비밀번호가 올바르지 않습니다. "
+                             f"(남은 시도 {MAX_FAILS - u.failed_logins}회 — {MAX_FAILS}회 틀리면 {LOCK_MINUTES}분 잠김)")
             audit.log("login_fail", "user", u.id if u else None, None, {"login_id": login_id}, user_id=None)
             db.session.commit()
             error = error or "아이디 또는 비밀번호가 올바르지 않습니다."

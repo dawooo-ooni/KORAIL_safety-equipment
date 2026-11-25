@@ -65,6 +65,25 @@ def test_lock_after_5_failures(app, client):
         assert AuditLog.query.filter_by(action="login_fail").count() >= 5
 
 
+def test_lock_counts_exactly_5_and_shows_remaining(app, client):
+    r = login(client, "user02", "wrong")
+    assert "남은 시도 4회" in r.get_data(as_text=True)
+    for _ in range(3):
+        login(client, "user02", "wrong")
+    with app.app_context():
+        assert User.query.filter_by(login_id="user02").first().failed_logins == 4
+    r = login(client, "user02", "wrong")  # 5번째에 잠김
+    assert "잠겼습니다" in r.get_data(as_text=True)
+    with app.app_context():
+        u = User.query.filter_by(login_id="user02").first()
+        assert u.locked_until is not None and u.failed_logins == 0
+
+
+def test_login_tolerates_pasted_whitespace(client):
+    r = login(client, "user01", " 1111\r\n")
+    assert r.status_code == 302
+
+
 def test_last_admin_cannot_be_demoted_or_deleted(app, admin_client):
     with app.app_context():
         # 예시 관리자 manager01 을 먼저 강등 → admin 만 남음

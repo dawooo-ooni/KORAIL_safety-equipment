@@ -28,7 +28,8 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def _temp_password(n=10):
-    alphabet = string.ascii_letters + string.digits
+    # 손으로 옮겨 적을 때 헷갈리는 글자(1 l I O 0 o) 제외
+    alphabet = "".join(c for c in string.ascii_letters + string.digits if c not in "1lIO0o")
     while True:
         pw = "".join(secrets.choice(alphabet) for _ in range(n))
         if any(c.isdigit() for c in pw) and any(c.isalpha() for c in pw):
