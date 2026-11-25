@@ -12,3 +12,7 @@ instance/
 *.db
 *.db-wal
 *.db-shm
+
+.vercel
+.env*
+!.env.example
